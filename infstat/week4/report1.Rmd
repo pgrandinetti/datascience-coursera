@@ -1,0 +1,91 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+
+Statistical Inference - Course project (Author: Peter)
+========================================================
+
+## Part I
+
+In this project I will investigate the exponential distribution in R and compare it with the Central Limit Theorem. The exponential distribution can be simulated in R with rexp(n, lambda) where lambda is the rate parameter. The mean of exponential distribution is 1/lambda and the standard deviation is also 1/lambda. Let lambda be 0.2 for all of the simulations. I will investigate the distribution of averages of 40 exponentials. For this, I will need to do a thousand simulations.
+
+## Preliminaries
+
+Let us first setting some variables and load some packages
+
+```{r}
+library(ggplot2) # plot library
+lambda = 0.2 # as required by the assignment
+set.seed(157) # to reproduce the experiments
+nSim = 1000
+nExp = 40
+```
+
+## Analysis of the distribution of averages of 40 exponentials
+
+Let us simulate the data, by generating 1000 simulations for each of the 40 exponential distributions, and rearranging all values into a matrix $nSim\times nExp$, that is $1000\times 40$. Then, using the `apply` function, we compute the actual mean of each sampled distribution (that is, each row in the matrix).
+
+```{r}
+expDistr = matrix(data=rexp(nExp * nSim, lambda), nrow=nSim)
+expDistrMeans = apply(expDistr, 1, mean)
+```
+
+#### Mean analysis
+
+Theoretically, the mean of an exponential distribution should be $\frac{1}{\lambda}$, which yields
+
+```{r}
+mu = 1 / lambda
+mu
+```
+
+Let's calculate the sample mean of our 1000 simulations of 40 sampled exponential distributions
+
+```{r}
+actualMean = mean(expDistrMeans)
+actualMean
+```
+
+The results of the Central Limit Theorem yields true.
+
+#### Variance analysis
+
+Similarly to the mean, we compare the theoretical variance with the sampled one. The standard deviation of exponential distribution should be $\sigma = \frac{1/\lambda}{\sqrt{n}}$, which yields
+
+```{r}
+theorySD = (1 / lambda) / sqrt(nExp)
+theorySD
+```
+
+and therefore the variance is $\sigma^2$, that is
+
+```{r}
+theoryVar = theorySD^2
+theoryVar
+```
+
+On the other hand, the variance computed over the sampled data is
+
+```{r}
+sd(expDistrMeans)
+var(expDistrMeans)
+```
+
+that yields very close results to the theoretical ones.
+
+#### Distribution visualization
+
+```{r}
+ggplot(
+  data=data.frame(means=expDistrMeans),
+  aes(x=means)
+) +
+  geom_histogram(binwidth=0.1, aes(y=..density..), alpha=0.3) +
+  stat_function(fun=dnorm, args=list(mean=mu, sd=theorySD), colour="red", size=1) + 
+  geom_vline(aes(xintercept=mu), colour="blue", linetype="dashed", size=1) + 
+  geom_vline(aes(xintercept=actualMean), colour="blue", size=1)
+```
+
+The plot shows how close are the distribution of the actual data (histogram) and the theoretical normal distribution with the given mean and standard deviation (red solid line), as well as the theoretical mean value (dashed blue line) and the actual mean computed on the sampled data (solid blue line).
