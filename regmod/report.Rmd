@@ -1,0 +1,86 @@
+---
+title: "Regression Models - Course Project"
+author: "Pete"
+date: "May 3, 2018"
+output:
+  pdf_document: default
+  fig_caption: yes
+---
+
+#### Executive Summary
+
+Executives at Motor Trend, a magazine about the automobile industry, are interested in exploring the relationship between a set of variables and miles per gallon (MPG) (outcome), in a data set of a collection of cars. They are particularly interested in the following two questions:
+
+  - Is an automatic or manual transmission better for MPG
+  - Quantify the MPG difference between automatic and manual transmissions
+
+```{r, message=FALSE, echo=FALSE}
+data("mtcars")
+library(ggplot2)
+library(gridExtra)
+library(data.table)
+```
+```{r, results='hide', echo=FALSE}
+mtcars$auto = factor(mtcars$am, labels=c("automatic", "manual"))
+DT = data.table(mtcars)
+```
+
+#### Exploratory data analysis
+
+A brief exploratory data analysis shows that:
+
+  1. Automatic transmissions are more frequent than manual, at the time when the dataset was built (see Figure \ref{fig:fig1} in Appendix)
+  2. It appears that heavier cars (`wt` variable) are more likely to have automatic transmission (and allow lesser `mpg` -- mile per gallon, although this is somewhat obvious); This is a very important finding, because one might believe that manual trasmission gives better `mpg` but according to the data this is only due to the fact that manual trasmission are used on lighter cars! See Fig. \ref{fig:fig2} in Appendix for details. On the other hand, cars with manual transmission seems to have better `mpg` even with equal horse-power (`hp` variable). See again Fig. \ref{fig:fig2} in Appendix for details.
+
+#### Regression analysis
+
+First of all, based on the exploratory analysis, we have performed a t-test against the null hypothesis that there is no correlation between trasmission type and `mpg`. We have obtained a p-value equal to `0.001374`, meaning that we could reject the null hypothesis.
+```{r, echo=FALSE}
+t.test(DT[auto=="automatic"]$mpg, DT[auto=="manual"]$mpg)
+```
+
+Therefore we have fitted a first linear model, with outcome `mpg` and only predictor the transmission type. Even though this model says that manual transmissions brings a 7.2x improvement on `mpg`, the $R^2$ value says that this model can only explain 36% of the variance.
+```{r, echo=FALSE}
+fit1 = lm(mpg ~ auto, data=DT)
+summary(fit1)
+```
+
+Therefore we fitted a second model, using a multivariate linear regression. The outcome is obviously again `mpg` and the predictors are `auto`, `cyl`, `disp`, `hp` and `wt`. First, we looked at the ANOVA test between the previous model and the second one: the resulting p-value is about `4e-8`, suggesting the second models is much better. Moreover, this models has $R^2$ such that it can explain 85.5% of the variance. 
+
+```{r, echo=FALSE}
+fit2 = lm(mpg~  auto + cyl + disp + hp + wt, data = DT)
+#anova(fit1, fit2)
+summary(fit2)
+```
+
+We also looked at the residual plots for this model, verifying they are normally distributed. See Fig. \ref{fig:fig3}.
+
+#### Conclusions
+We conclude that (1) manual transmission seems better in terms of `mpg`, and (2) the difference between automatic and manual transmission is about 1.55x `mpg`. It is worth noticing that this result holds with the 85.5% variance uncertainty given by the $R^2$ value.
+
+# Appendix
+
+```{r fig1, fig.align='center', echo=FALSE, message=FALSE, fig.cap="\\label{fig:fig1}", out.height='0.3\\textheight', out.extra='keepaspectratio'}
+qplot(DT$am,
+      geom="histogram",
+      main="Frequency of automatic vs manual transmissions"
+      ) + 
+  scale_x_continuous(
+    name="Transmission",
+    breaks = c(0.0, 1.0),
+    labels=c("Automatic", "Manual")
+  )
+```
+
+```{r fig2, fig.align='center', echo=FALSE, message=FALSE, fig.cap="\\label{fig:fig2}", out.height='0.4\\textheight', out.extra='keepaspectratio'}
+p1 = ggplot(DT, aes(x=wt, y=mpg, col=auto)) + geom_point()
+p2 = ggplot(DT, aes(x=cyl, y=mpg, col=auto)) + geom_point()
+p3 = ggplot(DT, aes(x=hp, y=mpg, col=auto)) + geom_point()
+p4 = ggplot(DT, aes(x=disp, y=mpg, col=auto)) + geom_point()
+grid.arrange(p1, p2, p3, p4, nrow=2, ncol=2)
+```
+
+```{r fig3, echo=FALSE, fig.align='center', fig.cap="\\label{fig:fig3}", out.height='0.4\\textheight', out.extra='keepaspectratio'}
+par(mfrow = c(2,2))
+plot(fit2)
+```
