@@ -50,6 +50,7 @@ dtTest[, c("V1", "user_name", "new_window") := NULL]
 # Step 2
 goodCol = unlist(lapply(dtTrain, function(x) sum(is.na(x))/length(x)<0.1))
 dtTrain = dtTrain[, which(goodCol), with=F]
+dtTest = dtTest[, which(goodCol), with=F]
 ```
 
 ```{r}
@@ -57,6 +58,7 @@ dtTrain = dtTrain[, which(goodCol), with=F]
 nzv <- nearZeroVar(dtTrain, names=T)
 if (length(nzv) > 0) {
   dtTrain[, (nzv):=NULL]
+  dtTest[, (nzv):=NULL]
 }
 ```
 
@@ -141,4 +143,10 @@ We have built two prediction models, one based on classification trees and one b
 
 We performed the simplest type of cross-validation, handout validation. The results shows that the random forest model is clearly better, achieving a good accuracy, approximately 97%, in the validation test.
 
-The final test, to be performed on the real test-set, is done via quizzes.
+The final test, to be performed on the actual test-set, is done via quizzes. These are our predictions using the random forest model:
+
+```{r}
+dtTest[, (highCor):=NULL]
+dtTest[, problem_id:=NULL]
+predict(forestMod, dtTest)
+```
