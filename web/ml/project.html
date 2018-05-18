@@ -153,11 +153,13 @@ dtTrain[, c(&quot;V1&quot;, &quot;user_name&quot;, &quot;new_window&quot;) := NU
 dtTest[, c(&quot;V1&quot;, &quot;user_name&quot;, &quot;new_window&quot;) := NULL]</code></pre>
 <pre class="r"><code># Step 2
 goodCol = unlist(lapply(dtTrain, function(x) sum(is.na(x))/length(x)&lt;0.1))
-dtTrain = dtTrain[, which(goodCol), with=F]</code></pre>
+dtTrain = dtTrain[, which(goodCol), with=F]
+dtTest = dtTest[, which(goodCol), with=F]</code></pre>
 <pre class="r"><code># Step 3
 nzv &lt;- nearZeroVar(dtTrain, names=T)
 if (length(nzv) &gt; 0) {
   dtTrain[, (nzv):=NULL]
+  dtTest[, (nzv):=NULL]
 }</code></pre>
 </div>
 <div id="handout-cross--validation" class="section level2">
@@ -262,7 +264,13 @@ paste0(&quot;Accuracy for random forest is &quot;, acc)</code></pre>
 <h2>Conclusion</h2>
 <p>We have built two prediction models, one based on classification trees and one based on random forest. We used the <code>caret</code> built-in model <code>rpart</code> for the former, and a model with 100 trees for the latter.</p>
 <p>We performed the simplest type of cross-validation, handout validation. The results shows that the random forest model is clearly better, achieving a good accuracy, approximately 97%, in the validation test.</p>
-<p>The final test, to be performed on the real test-set, is done via quizzes.</p>
+<p>The final test, to be performed on the actual test-set, is done via quizzes. These are our predictions using the random forest model:</p>
+<pre class="r"><code>dtTest[, (highCor):=NULL]
+dtTest[, problem_id:=NULL]
+predict(forestMod, dtTest)</code></pre>
+<pre><code>##  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 
+##  B  A  B  A  A  E  D  B  A  A  B  C  B  A  E  E  A  B  B  B 
+## Levels: A B C D E</code></pre>
 </div>
 
 
