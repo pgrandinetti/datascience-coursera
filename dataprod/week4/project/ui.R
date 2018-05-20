@@ -34,7 +34,7 @@ shinyUI(fluidPage(
                p("In a second tab is shown a short version of the documentation, 
                   and the link to the pdf documentation."),
                a("clik here to see the documentation!", 
-                 href="https://github.com/pgrandinetti/dataproductclass/blob/master/readme.pdf")
+                 href="https://pgrandinetti.github.io/datascience-coursera/dataprod/week4/pitch/pitchRpres.html")
       )
     ),
     width = 4

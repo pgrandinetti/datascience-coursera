@@ -20,7 +20,7 @@ Scenario
 How to use the Shiny App
 ========================================================
 
-- Reach the following link with your browser https://pgrandinetti.shinyapps.io/shinyApp
+- Reach the following link with your browser https://pgrandinetti.shinyapps.io/shinyApp2018
 - The app explains by itself!
 
 	+ You will read the instruction on the left
