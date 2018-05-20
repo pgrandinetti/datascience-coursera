@@ -1,0 +1,34 @@
+---
+title: "Data Products - Week 2"
+author: "pgrandinetti"
+date: "May 20, 2018"
+output: html_document
+---
+
+## Date example
+
+The date is placed as subtitle if you use the `date` option in knitr. To generate the current date using R simply use
+
+```{r, echo=F, results='hide'}
+Sys.setlocale("LC_TIME", "C")
+```
+```{r}
+format(Sys.Date(), "%B %d, %Y")
+```
+
+## Map example
+
+A very simple map with some fancy place marked. The code is intentionally shown too.
+
+```{r}
+library(leaflet)
+coord = data.frame(
+  name=c("Honolulu", "London", "Sidney"),
+  lat=c(21.315603, 51.509865, -33.865143),
+  lon=c(-157.858093, -0.118092, 151.209900)
+)
+coord[, 2:3] %>%
+  leaflet() %>%
+  addTiles() %>%
+  addMarkers(popup=coord$name)
+```
