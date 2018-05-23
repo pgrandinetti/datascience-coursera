@@ -1,0 +1,91 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+
+Statistical Inference - Course project 2 (Author: Peter)
+========================================================
+
+## Part II
+
+In the second part I will analyze the ToothGrowth data set that comes with the R `datasets` package, performing some basic exploratory analysis, data summary and using confidence intervals for further statistical analysis.
+
+### Preliminaries
+
+Let us first of all load packages and data.
+
+```{r}
+library(ggplot2)
+library(gridExtra)
+library(datasets)
+# now load data
+data("ToothGrowth")
+tooths = ToothGrowth
+tooths$dose = as.factor(tooths$dose)
+```
+
+### Basic summary and exploratory analysis of the data
+
+As often, we simply start out with printing out some information about the data, the ones given by `str`, `summary`, and a simple boxplot.
+
+```{r}
+str(tooths)
+```
+
+```{r}
+summary(tooths)
+```
+
+```{r}
+p1 <- ggplot(data=tooths, aes(x=dose,y=len,fill=dose)) +
+  geom_boxplot() + 
+  theme(legend.position="none") + 
+  facet_grid(.~supp) 
+
+p2 <- ggplot(data=tooths, aes(x=supp,y=len,fill=supp)) +
+  geom_boxplot() + 
+  theme(legend.position="none") + 
+  facet_grid(.~dose) 
+
+p3 <- ggplot(data=tooths, aes(x=supp,y=len,fill=supp)) +
+  geom_boxplot()
+
+p4 <- ggplot(data=tooths, aes(x=dose,y=len,fill=dose)) +
+  geom_boxplot()
+
+grid.arrange(p1, p4, p2, p3, ncol = 2, nrow=2)
+```
+
+### Hypothesis tests with confidence intervals
+
+Let's start with the "null" hypothesis that there is no correlation between the `delivery method` and the `tooth length`, and let's analyze possible correlation between the two.
+
+```{r}
+t.test(len ~ supp, paired=FALSE, var.equal=FALSE, data=tooths)
+```
+
+The test tells us the 95% confidence interval is $[-0.1710156, 7.5710156]$, which contains the zero value. Furthermore, the p-value is 0.06 that is larger than 0.05, therefore we cannot reject the null hypothesis.
+
+Let's double check this result with the analysis of variance (ANOVA):
+
+```{r}
+anovaRes = aov(len ~ supp*dose, data=tooths)
+summary(anovaRes)
+```
+
+This result show that there is a clear correlation between the `len` (length) and the `dose` (dosage) parameters, as well has between `len` and `supp` (Supplement), and the two conclusions are independent.
+
+Conclusions
+-----------
+
+The analysis perfomed has shown that
+
+  1. A correlation between the Delivery Method and the Tooth Length is possible (we could not rule out the null hypothesis)
+  2. Both the Supplement and the Dosage have independent effect on the Tooth Length.
+
+It is worth noticing that these results are valid under the following assumptions:
+
+  - The sampled data are representative of the population (of the guinea pigs)
+  - Dosage and Supplement were randomly distributed in the population
+  - The means' distribution is normal.

@@ -1,0 +1,152 @@
+---
+title: "Practical Machine Learning - Course Project"
+author: "Pete"
+date: "May 18, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Abstract
+
+This notebook describes a proposed solution for the final project in the "Practical Machine Learning" class, John Hopkins University via Coursera.
+
+Nowadays it is now possible to collect a large amount of data about personal activity relatively inexpensively. In this project, the goal will be to use data from accelerometers of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways, and the objective is to build a classification system for these 5 classes.
+
+## Preliminary data manipulation
+
+First of all let's load packages and data sets provided for the project
+
+```{r, message=F, warning=F}
+library(data.table)
+library(caret)
+library(ggplot2)
+set.seed(1234567)
+```
+```{r}
+dtTrain = fread('./pml-training.csv', na.strings=c("", "NA"))
+dtTest = fread('./pml-testing.csv', na.strings=c("", "NA"))
+```
+
+Before going any further, a quick data observation tells us that:
+
+  1. Some variables correspond to timestamp, in various format. We don't think these may be useful for the specific prediction task of this project, therefore we want to remove them. We do the same with the `user_name` and `new_window` variables.
+  
+  2. Many observations contains a large number of `NA` values. We want to remove them too.
+  
+  3. It may happen that some variables, across some observations, have very little variance. In other words, including them all is unlinkely to help the predictor. Thus, we will remove them, if any.
+  
+```{r, message=F, warning=F}
+# Step 1
+dtTrain[, grep('timestamp', colnames(dtTrain), ignore.case=T):=NULL]
+dtTest[, grep('timestamp', colnames(dtTest), ignore.case=T):=NULL]
+dtTrain[, c("V1", "user_name", "new_window") := NULL]
+dtTest[, c("V1", "user_name", "new_window") := NULL]
+```
+
+```{r, message=F}
+# Step 2
+goodCol = unlist(lapply(dtTrain, function(x) sum(is.na(x))/length(x)<0.1))
+dtTrain = dtTrain[, which(goodCol), with=F]
+dtTest = dtTest[, which(goodCol), with=F]
+```
+
+```{r}
+# Step 3
+nzv <- nearZeroVar(dtTrain, names=T)
+if (length(nzv) > 0) {
+  dtTrain[, (nzv):=NULL]
+  dtTest[, (nzv):=NULL]
+}
+```
+
+## Handout (cross-) Validation
+
+Since we have more than 19k observations in the training set and only 20 in the test set, we will use handout validation (the simplest form of cross-validation) by splitting the training set into actual training set (70% of it) and validation set (30% of it)
+
+```{r}
+trainPar = createDataPartition(y=dtTrain$classe, p=0.7, list=F)
+dtVal = dtTrain[-trainPar, ]
+dtTrain = dtTrain[trainPar, ]
+```
+
+## Model selection
+
+After preliminary analysis, we will propose two models:
+
+  1. A model based on Classification and Regression Tree, built-in method in the 'caret` package, that offers reasonably efficient performances.
+  
+  2. A model based on Random Forest. However, to speed-up the computation, in this case we will preliminary perform PCA and remove the features that appear to be higly correlated each to another.
+  
+#### Classification Tree
+
+```{r}
+treeFit = train(classe ~ ., method='rpart', data=dtTrain)
+treePred = predict(treeFit, dtVal)
+table(treePred, dtVal$classe)
+```
+
+```{r}
+confusionMatrix(treeFit)
+```
+
+Results show that this model has quite poor performance, with an average accuracy lower than 60%.
+
+#### Random Forest
+
+As anticipated, let's start by visualizing the correlation between features
+
+```{r, message=F, warning=F, fig.align='center'}
+library(corrplot)
+trainLabels = dtTrain$classe
+classeIdx<- which(names(dtTrain) == "classe")
+dtTrain[, classe:=NULL]
+corrMat <- cor(dtTrain)
+highCor = findCorrelation(corrMat, cutoff=0.9, exact=TRUE)
+corrplot(corrMat, method="color", type="lower", order="hclust", tl.cex=0.70, tl.col="black", tl.srt = 45, diag = FALSE)
+```
+
+And finally, fit a random forest model with 100 trees and check its accuracy
+
+```{r, message=F, warning=F}
+library(randomForest)
+valLabels = dtVal$classe
+dtVal[, classe:=NULL]
+dtTrain[, (highCor):=NULL]
+dtVal[, (highCor):=NULL]
+ntrees = 100
+forestMod = randomForest(
+  x=dtTrain,
+  y=factor(trainLabels),
+  xtest=dtVal,
+  ytest=factor(valLabels),
+  ntree=ntrees,
+  keep.forest=T,
+  proximity=T
+)
+```
+
+```{r}
+forestMod
+```
+
+```{r}
+acc = round(1 - sum(forestMod$confusion[, 'class.error']), 3)
+paste0("Accuracy for random forest is ", acc)
+```
+
+## Conclusion
+
+We have built two prediction models, one based on classification trees and one based on random forest. We used the `caret` built-in model `rpart` for the former, and a model with 100 trees for the latter.
+
+We performed the simplest type of cross-validation, handout validation. The results shows that the random forest model is clearly better, achieving a good accuracy, approximately 97%, in the validation test.
+
+The final test, to be performed on the actual test-set, is done via quizzes. These are our predictions using the random forest model:
+
+```{r}
+dtTest[, (highCor):=NULL]
+dtTest[, problem_id:=NULL]
+predict(forestMod, dtTest)
+```
