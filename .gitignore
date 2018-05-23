@@ -1,8 +1,3 @@
-<<<<<<< HEAD
-/*
-!/.gitignore
-!/web/
-=======
 # History files
 .Rhistory
 .Rapp.history
@@ -45,4 +40,4 @@ rprog/week2/specdata/*.csv
 rprog/week4/data/*
 getclean/week4/Dataset/*
 eda/week4/data/*
->>>>>>> master
+
