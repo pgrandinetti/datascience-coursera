@@ -1,0 +1,160 @@
+---
+title: "Data Science Capstone - Milestone Report"
+author: "Pete"
+date: "June 16, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=FALSE, results='hide'}
+source("./getclean.R")
+library(stringi)
+library(tm)
+library(qdapDictionaries)
+library(wordcloud)
+library(ggplot2)
+folderPath = "~/Downloads/final/en_US"
+```
+
+## Dataset overview
+
+We know there are approximately
+
+  - 900k documents in the blog data set,
+  - 1M documents in the news data set, and
+  - 2.3M documents in the twitter data.
+
+The general dataset information are given as
+
+```{r, warning=FALSE}
+conn = file(file.path(folderPath, "en_US.blogs.txt"), "rt")
+blogLines = readLines(conn)
+close(conn)
+
+conn = file(file.path(folderPath, "en_US.news.txt"), "rt")
+newsLines = readLines(conn)
+close(conn)
+
+conn = file(file.path(folderPath, "en_US.twitter.txt"), "rt")
+tweetLines = readLines(conn)
+close(conn)
+
+blog.words = stri_count_words(blogLines)
+news.words = stri_count_words(newsLines)
+tweet.words = stri_count_words(tweetLines)
+
+screenshot = data.frame(
+    type=c("blog", "news", "tweet"),
+    lines=c(length(blogLines), length(newsLines), length(tweetLines)),
+    words=c(sum(blog.words), sum(news.words), sum(tweet.words)))
+screenshot
+```
+
+Moreover, the total size of the objects created so far in memory is several hundreds of Megabytes, that would slow down a lot even a simple exploratory analysis. Therefore, we want to collect a subset of them that is still large enough to be valuable for the analysis, but more lightweight to process.
+
+We will take:
+
+  - 10k blog posts: 8k in dev, 1k in val and 1k in test
+  - 10k news: 8k in dev, 1k in val and 1k in test
+  - 10k tweets: 8k in dev, 1k in val and 1k in test
+  
+This will give 24 thousand documents (evenly distributed among blog, news and twitter), and we believe this size should be sufficient.
+
+```{r}
+rm(blogLines, newsLines, tweetLines, blog.words, tweet.words, news.words)
+dataset = makeDataset(folderPath)
+```
+
+The dataset occupies about 6.5 Mb in memory, and is a list containing 3 lists: one for the training set, one for the validation set and the third for the test set. These lists are made of three more sublists, the first from the blog data, the second from the news data and the third from the twitter data. Let's visualize some basic statics about it.
+
+Notice that for the purpose of the exploratory data analysis we only use the training data.
+
+### Training data overview
+
+```{r}
+overview = rbind(
+    blog=summary(stri_length(dataset$train[[1]])),
+    news=summary(stri_length(dataset$train[[2]])),
+    tweet=summary(stri_length(dataset$train[[3]])))
+overview
+```
+
+Now we build the corpus of documents in memory.
+
+```{r}
+trainCorp = VCorpus(
+        VectorSource(c(dataset$train[[1]], dataset$train[[2]], dataset$train[[3]])),
+        readerControl = list(
+            language = "en_US",
+            load=FALSE
+        )
+    )
+```
+
+The `trainCorp` object occupies 90 Mb of memory. Therefore, even considering computations typical of text mining (term-document matrix, for instance) there will not be any memory problem in a modern computer.
+
+## Corpora preprocessing
+
+We perform a series of common steps in text processing, like stemming, removing punctuation, make string lowercase.
+
+A very common task in preprocessing text corpora is stopwords removal. However, in this particular case where the final objective is to suggest the next word in a sentence, removing stopwords might be a mistake. We do it anyway, just for the purpose of the initial statistical analysis.
+
+```{r}
+trainCorp = tm_map(trainCorp, removePunctuation, preserve_intra_word_dashes=TRUE)
+stops = stopwords(kind="en")
+trainCorp = tm_map(trainCorp, content_transformer(tolower))
+trainCorp = tm_map(trainCorp, removeWords, stops)
+trainCorp = tm_map(trainCorp, stemDocument)
+trainCorp = tm_map(trainCorp, stripWhitespace)
+trainCorp = tm_map(trainCorp, PlainTextDocument)
+```
+
+## Frequency analysis
+
+```{r}
+tdm = TermDocumentMatrix(trainCorp) # stopwords are already removed
+```
+
+```{r}
+top = findFreqTerms(tdm, 1000, Inf)
+valid = top %in% GradyAugmented
+highFreq = top[valid]
+highFreq
+```
+
+The result of this very simple analysis shows that the most frequent words are words that are very commonly used in english language. This confirms, in a sense, that there is no clear topic accross all documents.
+
+Let's provide a barplot and a classic wordcloud visualization of the most frequent words
+
+```{r}
+m = as.matrix(tdm)
+v = sort(rowSums(m), decreasing=TRUE)
+d = data.frame(word=names(v), freq=v)
+```
+
+```{r}
+p = ggplot(
+    data=d[1:50,],
+    aes(x=word, y=freq)
+) + 
+geom_bar(stat="identity") +
+theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
+p
+```
+
+```{r}
+set.seed(4567)
+wordcloud(words = d$word, freq = d$freq, min.freq = 1,
+          max.words=50, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Dark2"))
+```
+
+
+## Final comments
+
+We have performed an EDA (exploratory data analysis) to get a sense of what the dataset looks like. We have seen that there is no clear pattern regarding the topic of the documents (as was indeed expected), and that common words like "said", "just", "good" are indeed among the most frequent.
+
+The next step will be to design a simple algorithm based on n-grams frequency to make basic prediction about the next word in a sentence.
