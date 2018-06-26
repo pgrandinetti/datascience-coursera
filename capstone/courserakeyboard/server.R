@@ -7,11 +7,16 @@ library(RSQLite)
 # Define server logic required to draw a histogram
 shinyServer(
     function(input, output, session) {
-        observe({
+        observeEvent(input$predButton, {
             startTime = Sys.time()
             res = predictWord(input$text)
+            finalTime = Sys.time() - startTime
+            if (length(res) > 0)
+                output$bestPred = renderText(res[1])
+            else
+                output$bestPred = renderText("Unable to make a prediction")
             output$suggestions = renderText({paste0(res, collapse=" | ")})
-            output$compTime = renderText({sprintf("Total computation time is %3.6f seconds", Sys.time() - startTime)})
+            output$compTime = renderText({sprintf("Total computation time is %3.6f seconds", finalTime)})
         })
     }
 )

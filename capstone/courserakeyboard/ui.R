@@ -9,7 +9,7 @@ shinyUI(
             sidebarPanel(
                 p("Enter your text and hit *Predict*"),	
                 textInput(inputId="text", label = ""),
-                submitButton("Predict"),
+                actionButton("predButton", "Predict"),
                 HTML('<script type="text/javascript"> 
                         document.getElementById("text").focus();
                      </script>'
@@ -17,7 +17,10 @@ shinyUI(
             ),
             mainPanel(
                 tabsetPanel(
-                    tabPanel("Result", 
+                    tabPanel("Main Prediction",
+                             verbatimTextOutput('bestPred')
+                    ),
+                    tabPanel("More results", 
                         conditionalPanel(condition = "input.text != ''",
                                          verbatimTextOutput("compTime"),
                                          verbatimTextOutput("suggestions")
