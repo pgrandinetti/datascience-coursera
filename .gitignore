@@ -42,3 +42,4 @@ getclean/week4/Dataset/*
 eda/week4/data/*
 capstone/draft.R
 capstone/*.db
+capstone/courserakeyboard/*.db

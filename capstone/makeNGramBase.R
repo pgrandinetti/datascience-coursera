@@ -31,9 +31,10 @@ makeNGramData = function(folderPath, dbPath="./ngramDB.db", dev=5e3){
 }
 
 cleanLine = function(line){
-    aLine = removePunctuation(line, preserve_intra_word_dashes=TRUE)
+    aLine = str_trim(line)
+    aLine = removePunctuation(aLine, preserve_intra_word_dashes=TRUE)
     aLine = tolower(aLine)
-    aLine = gsub("[“”’\\/\"'^£$%&|#]", '', aLine)
+    aLine = gsub("[“”’\\/\"^£$%&|#]", '', aLine)
     aLine = iconv(aLine, "utf-8", "ASCII", sub="")
     aLine = stripWhitespace(aLine)
     return(aLine)

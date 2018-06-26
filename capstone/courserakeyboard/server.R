@@ -1,8 +1,20 @@
+library(shiny)
 library(tm)
 library(stringr)
 library(DBI)
 library(RSQLite)
-source("./makeNGramBase.R")
+
+# Define server logic required to draw a histogram
+shinyServer(
+    function(input, output, session) {
+        observe({
+            startTime = Sys.time()
+            res = predictWord(input$text)
+            output$suggestions = renderText({paste0(res, collapse=" | ")})
+            output$compTime = renderText({sprintf("Total computation time is %3.6f seconds", Sys.time() - startTime)})
+        })
+    }
+)
 
 predictWord = function(sentence){
     # defalult values
@@ -29,7 +41,7 @@ predictWord = function(sentence){
     if (line1 %in% stops)
         x1 = 0.0001
     
-    print(list(c(line1, x1), c(line2, x2), c(line3, x3)))
+    #print(list(c(line1, x1), c(line2, x2), c(line3, x3)))
     
     dbPath = "./ngramDB_v1.db"
     predictWord_internal(line1, line2, line3, dbPath, x1=x1, x2=x2, x3=x3)
@@ -58,6 +70,16 @@ predictWord_internal = function(line1, line2, line3, dbPath, x1, x2, x3){
         params=params
     )
     res = dbFetch(res, n=-1)
-    res
-    #res$prediction
+    #res
+    res$prediction
+}
+
+cleanLine = function(line){
+    aLine = str_trim(line)
+    aLine = removePunctuation(aLine, preserve_intra_word_dashes=TRUE)
+    aLine = tolower(aLine)
+    aLine = gsub("[“”’\\/\"^£$%&|#]", '', aLine)
+    aLine = iconv(aLine, "utf-8", "ASCII", sub="")
+    aLine = stripWhitespace(aLine)
+    return(aLine)
 }
