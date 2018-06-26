@@ -2,7 +2,10 @@ Capstone Project - Data Science Specialization
 ========================================================
 author: pgrandinetti (github.com/pgrandinetti)
 date: June 26, 2018
-autosize: true
+autosize: false
+width: 1920
+height: 1080
+
 
 Background
 ========================================================
@@ -19,12 +22,12 @@ We will now:
 
   - Briefly explain the development and algorithms behind the application
   - Illustrate how to use the app
-  - Outline conclusions and possible improvements
+  
 
 The algorithm
 ========================================================
 
-To develop the app we have been given a dataset containing a few millions of text document (taken from blogs, news and twitter).
+To develop the app we have been given a dataset containing a few millions text document (taken from blogs, news and twitter).
 
 We have built a **system of n-grams** to use as statistical backgroun to make a prediction.
 
@@ -32,7 +35,8 @@ Three points make the strategy attractive:
 
   - Building n-grams is a known problem for which there exist ready-to-use packages (we used `tm` and `Rweka`, the more recent `ngrams` is also worth considering)
   - We make prediction based on the occurrence of n-grams, and this prediction is weighted by three factors (more on this in the next slide)
-  - We built a SQLite database that is used as **knowledge base**. The database is just a few MBs, which is very common even for mobile apps. Furthermore, this way we don't need to hold all ngrams in the memory of the device. Finally, an optimized SQL query fetches directly from the knowledge base the predictions.
+  - We built a SQLite database that is used as **knowledge base**. The database is just a few MBs, which is very common even for mobile apps. Furthermore, this way we don't need to hold all ngrams in the RAM memory of the device. Finally, an [optimized SQL query](https://github.com/pgrandinetti/datascience-coursera/blob/master/capstone/predictWord.R) fetches the predictions directly from the knowledge base, so there's no need to further process it in R.
+    - The knowledge base contains rows in the format `(ngram, next word, count)`, that are built from the training data. The `count` column tells how many time the combination `ngram`+`next word` has occurred.
 
 More technical details: Example
 ========================================================
@@ -42,14 +46,18 @@ Let "what is going" be the input sentence, and let assume the predictions found 
 At this point we multiply the counts for `to` and `on` by the weight `x3` (the weight for the 3-gram), and the count for `there` by the weight `x2`, and finally return the prediction with the best score.
 
   - We decided the weights `x3`, `x2` and `x1` by using cross-validation on a validation set with 3k examples (1k blog, 1k news and 1k tweet)!
-  - Notice that this is not the default behavior for the _back-off models_, but the combination of SQLite database, advanced-SQL query and cross-validation gave a very good and extremely efficient result!
+  - Notice that this is **not** the default behavior for the _back-off models_, but our custom algorithm. The combination of SQLite database, advanced-SQL query and cross-validation gave a very good and extremely efficient result on a test-set with 3k examples (not used for training nor for cross-validation)!
+
   
 
 App illustration
 ========================================================
 
-The design of the app is intentionally very simple. We believe a keyboard should be very very easy to use.
+The design of the app is intentionally very simple. Simply enter a piece of sentence and then hit the button "Predict".
 
-![Screenshot of the app](example.png)
+<img src="./example.png" width="450" height="400"/>
+
+Notice that two different tabs give either a single prediction (as requested by the assignment instruction), or the four best predictions along with the computation time. Finally, notice that we could only update in shiny a small version of the knowledge base; with our largest database the model is working very well!
 
   - Try it! [https://pgrandinetti.shinyapps.io/courserakeyboard/](https://pgrandinetti.shinyapps.io/courserakeyboard/)
+  - Fork it! [GitHub repo](https://github.com/pgrandinetti/datascience-coursera/tree/master/capstone)
